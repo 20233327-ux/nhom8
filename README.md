@@ -29,6 +29,6 @@ Hệ thống quản lý công văn chuyên sâu được xây dựng trên nền
 ## 🛠 Công nghệ Sử dụng
 - **Backend:** Django 6.0 (Modular Architecture).
 - **Xử lý nền:** Celery + Redis (xử lý OCR, PDF nặng).
-- **Database:** SQLite (Mặc định) / PostgreSQL (Sẵn sàng).
+- **Database:** SQLite  / PostgreSQL 
 - **Thư viện AI/PDF:** Pytesseract, Pdfplumber, pyHanko, Pillow.
 - **Frontend:** Bootstrap 5, Chart.js.

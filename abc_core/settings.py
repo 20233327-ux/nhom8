@@ -30,8 +30,13 @@ SECRET_KEY = os.environ.get(
 # DEBUG must be False in production
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-# Configure allowed hosts from environment or default to empty
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+# Configure allowed hosts from environment or default to localhost/127.0.0.1
+ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', '')
+if ALLOWED_HOSTS_STR:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
+else:
+    # Development default - allow localhost and 127.0.0.1
+    ALLOWED_HOSTS = ['*']  # In production, restrict this!
 
 
 # ============================================================================
@@ -65,6 +70,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # ============================================================================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files serving
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -136,8 +142,12 @@ USE_TZ = True  # Enable timezone support
 # Static Files & Media Configuration
 # ============================================================================
 STATIC_URL = 'static/'  # URL for static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Filesystem path for static files
 MEDIA_URL = '/media/'  # URL for media uploads
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Filesystem path for media
+
+# WhiteNoise configuration for serving static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # ============================================================================

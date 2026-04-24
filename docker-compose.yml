@@ -1,0 +1,125 @@
+services:
+  # Redis service (for Celery tasks)
+  redis:
+    image: redis:7-alpine
+    container_name: abc-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Database (PostgreSQL - optional, nếu muốn upgrade từ SQLite)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: abc-db
+  #   environment:
+  #     POSTGRES_DB: abc_database
+  #     POSTGRES_USER: abc_user
+  #     POSTGRES_PASSWORD: abc_password_change_me
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U abc_user"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Django Web Application
+  web:
+    build: .
+    container_name: abc-web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 abc_core.wsgi"
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      # Uncomment below if using PostgreSQL
+      # - DATABASE_URL=postgresql://abc_user:abc_password_change_me@db:5432/abc_database
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      redis:
+        condition: service_healthy
+      # db:
+      #   condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker (for async tasks like OCR)
+  celery:
+    build: .
+    container_name: abc-celery
+    command: celery -A abc_core worker -l info
+    environment:
+      - DEBUG=False
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - .:/app
+      - media_volume:/app/media
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  # Celery Beat (for scheduled tasks)
+  celery-beat:
+    build: .
+    container_name: abc-celery-beat
+    command: celery -A abc_core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DEBUG=False
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  # Nginx reverse proxy (optional, for production)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: abc-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - static_volume:/app/staticfiles:ro
+  #     - media_volume:/app/media:ro
+  #   depends_on:
+  #     - web
+
+volumes:
+  redis_data:
+  static_volume:
+  media_volume:
+  # postgres_data:  # Uncomment if using PostgreSQL
+
+networks:
+  default:
+    name: abc-network

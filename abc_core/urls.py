@@ -15,6 +15,7 @@ URL Configuration:
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.http import JsonResponse
 from vn_docs.views import dashboard
 
 
@@ -31,11 +32,28 @@ def redirect_home(request):
         HttpResponseRedirect: Redirect response
     """
     if not request.user.is_authenticated:
-        return redirect('login')
-    return redirect('dashboard_staff')
+        return redirect('/auth/login/')
+    return redirect('/auth/dashboard/staff/')
+
+
+def health_check(request):
+    """Health check endpoint for Docker/Kubernetes.
+    
+    Returns a simple JSON response to indicate the service is alive.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        JsonResponse: JSON response with status OK
+    """
+    return JsonResponse({'status': 'ok'}, status=200)
 
 
 urlpatterns = [
+    # Health check for Docker/Kubernetes
+    path('health/', health_check, name='health'),
+    
     # Root URL - redirects based on auth status
     path('', redirect_home, name='home'),
     

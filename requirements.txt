@@ -1,7 +1,7 @@
 # Django Framework
 Django==6.0.4
-django-crispy-forms==2.1
-crispy-bootstrap5==2.0.2
+django-crispy-forms==2.3
+crispy-bootstrap5==2026.3
 
 # Database
 # sqlite3 is included with Python
@@ -9,6 +9,10 @@ crispy-bootstrap5==2.0.2
 # Celery & Redis (for async tasks)
 celery==5.3.4
 redis==5.0.1
+
+# Production Server
+gunicorn==21.2.0
+whitenoise==6.6.0
 
 # Environment variables
 python-dotenv==1.0.0
